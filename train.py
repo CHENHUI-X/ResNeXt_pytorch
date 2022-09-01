@@ -172,10 +172,10 @@ if __name__ == '__main__':
     if args.ngpu > 1:
         net = torch.nn.DataParallel(net, device_ids=list(range(args.ngpu)))
 
-    if args.ngpu > 0:
+    if device != 'cpu':
         net.cuda()
 
-    summary(net,input_size=(3,32,32),batch_size=args.batch_size,device=device)
+    summary(net,input_size=(3,32,32),batch_size=args.batch_size,device='cpu')
 
     optimizer = torch.optim.SGD(net.parameters(), state['learning_rate'], momentum=state['momentum'],
                                 weight_decay=state['decay'], nesterov=True)
