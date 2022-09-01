@@ -22,7 +22,7 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 from models.model import CifarResNeXt
 from torchsummary.torchsummary import summary
-device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 from tqdm import  tqdm
 
 def getparser():
