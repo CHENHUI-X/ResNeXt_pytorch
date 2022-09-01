@@ -35,12 +35,18 @@ class ResNeXtBottleneck(nn.Module):
             widen_factor: factor to reduce the input dimensionality before convolution.
         """
         super(ResNeXtBottleneck, self).__init__()
-        width_ratio = out_channels / (widen_factor * 64.)
-        D = cardinality * int(base_width * width_ratio)
+
+        # Assume input channel = 64 , output channel = 128
+        width_ratio = out_channels / 64 # eg 128/(64) = 2
+        D = cardinality * int(base_width * width_ratio) # cardinality (32)个并行的 FM,输出channel=128
         self.conv_reduce = nn.Conv2d(in_channels, D, kernel_size=1, stride=1, padding=0, bias=False)
         self.bn_reduce = nn.BatchNorm2d(D)
-        self.conv_conv = nn.Conv2d(D, D, kernel_size=3, stride=stride, padding=1, groups=cardinality, bias=False)
+
+        self.conv_conv = nn.Conv2d(
+            D, D, kernel_size=3, stride=stride, padding=1, groups=cardinality, bias=False
+        ) # The core
         self.bn = nn.BatchNorm2d(D)
+
         self.conv_expand = nn.Conv2d(D, out_channels, kernel_size=1, stride=1, padding=0, bias=False)
         self.bn_expand = nn.BatchNorm2d(out_channels)
 
@@ -48,7 +54,7 @@ class ResNeXtBottleneck(nn.Module):
         if in_channels != out_channels:
             self.shortcut.add_module('shortcut_conv',
                                      nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride, padding=0,
-                                               bias=False))
+                                               bias=False)) # Just change the channel
             self.shortcut.add_module('shortcut_bn', nn.BatchNorm2d(out_channels))
 
     def forward(self, x):
@@ -72,7 +78,7 @@ class CifarResNeXt(nn.Module):
         """ Constructor
 
         Args:
-            cardinality: number of convolution groups.
+            cardinality: number of convolution groups.(width)
             depth: number of layers.
             nlabels: number of classes
             base_width: base number of channels in each group.
@@ -81,7 +87,7 @@ class CifarResNeXt(nn.Module):
         super(CifarResNeXt, self).__init__()
         self.cardinality = cardinality
         self.depth = depth
-        self.block_depth = (self.depth - 2) // 9
+        self.block_depth = (self.depth - 2) // 9 # 每个block含有9个layer
         self.base_width = base_width
         self.widen_factor = widen_factor
         self.nlabels = nlabels
@@ -117,6 +123,7 @@ class CifarResNeXt(nn.Module):
         Returns: a Module consisting of n sequential bottlenecks.
 
         """
+        # Assume input channel = 64 , output channel = 128
         block = nn.Sequential()
         for bottleneck in range(self.block_depth):
             name_ = '%s_bottleneck_%d' % (name, bottleneck)
@@ -130,11 +137,11 @@ class CifarResNeXt(nn.Module):
         return block
 
     def forward(self, x):
-        x = self.conv_1_3x3.forward(x)
-        x = F.relu(self.bn_1.forward(x), inplace=True)
-        x = self.stage_1.forward(x)
-        x = self.stage_2.forward(x)
-        x = self.stage_3.forward(x)
-        x = F.avg_pool2d(x, 8, 1)
+        x = self.conv_1_3x3.forward(x) # output (-1,64,32,32)
+        x = F.relu(self.bn_1.forward(x), inplace=True) # same as above
+        x = self.stage_1.forward(x) # output (-1,128,32,32)
+        x = self.stage_2.forward(x) # output (-1,256,16,16)
+        x = self.stage_3.forward(x) # output (-1,512, 8, 8)
+        x = F.avg_pool2d(x, 8, 1) # output (-1,512, 1, 1)
         x = x.view(-1, self.stages[3])
         return self.classifier(x)

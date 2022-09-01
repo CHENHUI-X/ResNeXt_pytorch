@@ -1,0 +1,1 @@
+{"data_path": "/cifar10", "dataset": "cifar10", "epochs": 1, "batch_size": 128, "learning_rate": 0.1, "momentum": 0.9, "decay": 0.0005, "test_bs": 10, "schedule": [150, 225], "gamma": 0.1, "save": "./checkpoint/", "load": null, "test": false, "depth": 29, "cardinality": 8, "base_width": 64, "widen_factor": 4, "ngpu": 1, "prefetch": 2, "log": "./"}
